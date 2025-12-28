@@ -135,5 +135,15 @@ router.post('/:id/archive', async (req, res, next) => {
     }
 });
 
+// 重新激活任务（加入待完成任务）
+router.post('/:id/reactivate', async (req, res, next) => {
+    try {
+        const task = await taskService.reactivateTask(req.params.id);
+        res.json({ success: true, data: task });
+    } catch (error) {
+        next(error);
+    }
+});
+
 module.exports = router;
 

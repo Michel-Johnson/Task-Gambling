@@ -8,6 +8,7 @@ const cron = require('node-cron');
 const tasksRouter = require('./routes/tasks');
 const prizesRouter = require('./routes/prizes');
 const lotteryRouter = require('./routes/lottery');
+const walletRouter = require('./routes/wallet');
 
 // 导入服务
 const cleanupService = require('./services/cleanupService');
@@ -30,6 +31,7 @@ app.use(express.static(path.join(__dirname, '../public')));
 app.use('/api/tasks', tasksRouter);
 app.use('/api/prizes', prizesRouter);
 app.use('/api/lottery', lotteryRouter);
+app.use('/api/wallet', walletRouter);
 
 // 健康检查
 app.get('/api/health', (req, res) => {

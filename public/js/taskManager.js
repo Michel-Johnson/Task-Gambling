@@ -94,7 +94,9 @@ function renderTasks(containerId, tasks, status) {
             if (completeBtn) completeBtn.addEventListener('click', () => handleCompleteTask(task));
             startTaskTimer(task);
         } else if (status === 'completed') {
+            const reactivateBtn = document.getElementById(`reactivate-task-${task.id}`);
             const archiveBtn = document.getElementById(`archive-task-${task.id}`);
+            if (reactivateBtn) reactivateBtn.addEventListener('click', () => handleReactivateTask(task.id));
             if (archiveBtn) archiveBtn.addEventListener('click', () => handleArchiveTask(task.id));
         }
     });
@@ -129,6 +131,7 @@ function createTaskCard(task, status) {
     } else if (status === 'completed') {
         actions = `
             <div class="task-actions">
+                <button class="btn btn-primary btn-small" id="reactivate-task-${task.id}">重新加入待完成</button>
                 <button class="btn btn-secondary btn-small" id="archive-task-${task.id}">归档</button>
             </div>
         `;
@@ -307,6 +310,24 @@ async function handleCompleteTask(task) {
     }
 }
 
+// 重新激活任务
+async function handleReactivateTask(taskId) {
+    if (!confirm('确定要将此任务重新加入待完成任务吗？')) {
+        return;
+    }
+
+    try {
+        await apiRequest(`/tasks/${taskId}/reactivate`, {
+            method: 'POST'
+        });
+        
+        showMessage('任务已重新加入待完成任务', 'success');
+        loadTasks();
+    } catch (error) {
+        showMessage(error.message || '重新激活任务失败', 'error');
+    }
+}
+
 // 归档任务
 async function handleArchiveTask(taskId) {
     try {
@@ -395,8 +416,21 @@ function startTaskTimer(task) {
     const timerEl = document.getElementById(timerId);
     if (!timerEl) return;
 
+    // 清除之前的定时器
+    if (taskTimer) {
+        clearInterval(taskTimer);
+    }
+
     function updateTimer() {
-        const startedAt = new Date(task.started_at);
+        // 使用ISO格式解析时间，避免时区问题
+        let startedAt;
+        if (task.started_at.includes('T')) {
+            startedAt = new Date(task.started_at);
+        } else {
+            // 如果数据库返回的是本地时间字符串，直接解析
+            startedAt = new Date(task.started_at.replace(' ', 'T'));
+        }
+        
         const now = new Date();
         const elapsed = (now - startedAt) / 1000 / 60; // 分钟
         const remaining = task.time_limit - elapsed;
@@ -421,7 +455,8 @@ function startTaskTimer(task) {
     }
 
     updateTimer();
-    setInterval(updateTimer, 60000); // 每分钟更新一次
+    // 立即更新一次，然后每秒更新（更精确）
+    taskTimer = setInterval(updateTimer, 1000);
 }
 
 // HTML转义

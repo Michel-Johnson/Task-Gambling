@@ -579,3 +579,28 @@ body {
     margin-bottom: 20px;
 }
 
+/* 钱包样式 */
+.wallet-balance {
+    margin: 20px 0;
+}
+
+.balance-display {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 20px;
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    border-radius: 12px;
+    color: white;
+}
+
+.balance-label {
+    font-size: 1.2rem;
+    font-weight: 500;
+}
+
+.balance-amount {
+    font-size: 2rem;
+    font-weight: bold;
+}
+

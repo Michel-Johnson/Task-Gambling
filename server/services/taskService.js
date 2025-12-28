@@ -163,6 +163,30 @@ class TaskService {
         await dbRun(sql, ['archived', id]);
         return await this.getTaskById(id);
     }
+
+    // 重新加入待完成任务
+    async reactivateTask(id) {
+        const task = await this.getTaskById(id);
+        
+        if (!task) {
+            throw new Error('任务不存在');
+        }
+
+        if (task.status !== 'completed' && task.status !== 'archived') {
+            throw new Error('只能重新激活已完成或已归档的任务');
+        }
+
+        // 重置任务状态，清除开始和完成时间
+        const sql = `UPDATE tasks 
+                     SET status = 'pending', 
+                         started_at = NULL, 
+                         completed_at = NULL, 
+                         time_limit = NULL,
+                         archived_at = NULL
+                     WHERE id = ?`;
+        await dbRun(sql, [id]);
+        return await this.getTaskById(id);
+    }
 }
 
 module.exports = new TaskService();

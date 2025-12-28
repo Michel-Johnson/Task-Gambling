@@ -58,6 +58,27 @@ function initDatabase() {
             FOREIGN KEY (prize_id) REFERENCES prizes(id)
         )`);
 
+        // 创建钱包表
+        db.run(`CREATE TABLE IF NOT EXISTS wallet (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            amount REAL DEFAULT 0,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )`);
+
+        // 创建钱包交易记录表
+        db.run(`CREATE TABLE IF NOT EXISTS wallet_transactions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            amount REAL NOT NULL,
+            type TEXT NOT NULL,
+            description TEXT,
+            lottery_record_id INTEGER,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (lottery_record_id) REFERENCES lottery_records(id)
+        )`);
+
+        // 初始化钱包（如果不存在）
+        db.run(`INSERT OR IGNORE INTO wallet (id, amount) VALUES (1, 0)`);
+
         console.log('数据库表初始化完成');
     });
 }

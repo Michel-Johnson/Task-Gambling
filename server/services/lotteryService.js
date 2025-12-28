@@ -1,5 +1,6 @@
 const { dbRun, dbGet, dbAll } = require('../config/database');
 const taskService = require('./taskService');
+const walletService = require('./walletService');
 
 class LotteryService {
     // 计算无奖概率
@@ -68,11 +69,26 @@ class LotteryService {
         const selectedPrize = this.weightedRandomSelect(prizes);
         
         // 记录抽奖结果
-        await this.recordLottery(taskId, selectedPrize.id, hoursExceeded, noPrizeProb);
+        const lotteryRecord = await this.recordLottery(taskId, selectedPrize.id, hoursExceeded, noPrizeProb);
+        
+        // 检查是否是金钱类奖品，如果是则自动存入钱包
+        let walletAdded = false;
+        if (selectedPrize && this.isMoneyPrize(selectedPrize)) {
+            const amount = this.extractMoneyAmount(selectedPrize);
+            if (amount > 0) {
+                await walletService.addBalance(
+                    amount, 
+                    `抽奖获得：${selectedPrize.name}`, 
+                    lotteryRecord.id
+                );
+                walletAdded = true;
+            }
+        }
         
         return {
             prize: selectedPrize,
-            noPrizeProbability: noPrizeProb
+            noPrizeProbability: noPrizeProb,
+            walletAdded: walletAdded
         };
     }
 
@@ -81,7 +97,39 @@ class LotteryService {
         const sql = `INSERT INTO lottery_records 
                      (task_id, prize_id, time_exceeded, no_prize_probability)
                      VALUES (?, ?, ?, ?)`;
-        await dbRun(sql, [taskId, prizeId, hoursExceeded, noPrizeProb]);
+        const result = await dbRun(sql, [taskId, prizeId, hoursExceeded, noPrizeProb]);
+        
+        // 返回记录ID
+        const record = await dbGet('SELECT * FROM lottery_records WHERE id = ?', [result.id]);
+        return record;
+    }
+
+    // 判断是否是金钱类奖品
+    isMoneyPrize(prize) {
+        if (!prize || !prize.name) return false;
+        
+        const moneyKeywords = ['元', '¥', '￥', 'money', '现金', '金额', '钱'];
+        const name = prize.name.toLowerCase();
+        const description = (prize.description || '').toLowerCase();
+        
+        return moneyKeywords.some(keyword => 
+            name.includes(keyword.toLowerCase()) || 
+            description.includes(keyword.toLowerCase())
+        );
+    }
+
+    // 从奖品名称或描述中提取金额
+    extractMoneyAmount(prize) {
+        const text = `${prize.name} ${prize.description || ''}`;
+        // 匹配数字，支持小数点
+        const matches = text.match(/(\d+\.?\d*)/g);
+        
+        if (matches && matches.length > 0) {
+            // 取第一个匹配的数字
+            return parseFloat(matches[0]);
+        }
+        
+        return 0;
     }
 
     // 获取抽奖历史

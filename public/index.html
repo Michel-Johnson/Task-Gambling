@@ -14,6 +14,7 @@
             <nav class="nav-tabs">
                 <button class="tab-btn active" data-tab="tasks">任务管理</button>
                 <button class="tab-btn" data-tab="prizes">奖品管理</button>
+                <button class="tab-btn" data-tab="wallet">💰 钱包</button>
                 <button class="tab-btn" data-tab="history">抽奖历史</button>
             </nav>
         </header>
@@ -84,6 +85,32 @@
             <div class="section">
                 <h2>奖品列表</h2>
                 <div id="prizes-list" class="prize-list"></div>
+            </div>
+        </div>
+
+        <!-- 钱包标签页 -->
+        <div id="wallet-tab" class="tab-content">
+            <div class="section">
+                <h2>💰 我的钱包</h2>
+                <div class="wallet-balance">
+                    <div class="balance-display">
+                        <span class="balance-label">当前余额：</span>
+                        <span class="balance-amount" id="wallet-balance">加载中...</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>钱包操作</h2>
+                <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                    <button class="btn btn-primary" id="refresh-wallet-btn">刷新余额</button>
+                    <button class="btn btn-secondary" id="view-transactions-btn">查看交易记录</button>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>交易记录</h2>
+                <div id="wallet-transactions" class="history-list"></div>
             </div>
         </div>
 
@@ -196,6 +223,7 @@
     <script src="js/taskManager.js"></script>
     <script src="js/prizeManager.js"></script>
     <script src="js/lottery.js"></script>
+    <script src="js/wallet.js"></script>
     <script src="js/ui.js"></script>
 </body>
 </html>

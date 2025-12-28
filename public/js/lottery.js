@@ -121,12 +121,22 @@ function showLotteryResult(lotteryResult) {
     const resultContainer = document.getElementById('lottery-result');
     
     if (lotteryResult.prize) {
+        let walletMessage = '';
+        if (lotteryResult.walletAdded) {
+            walletMessage = `
+                <div style="background: var(--success-color); color: white; padding: 10px; border-radius: 8px; margin-top: 15px;">
+                    💰 金钱已自动存入钱包！
+                </div>
+            `;
+        }
+        
         resultContainer.innerHTML = `
             <h3>🎉 恭喜中奖！</h3>
             <div class="prize-name">${escapeHtml(lotteryResult.prize.name)}</div>
             ${lotteryResult.prize.description ? 
                 `<p style="margin-top: 10px; color: var(--text-light);">${escapeHtml(lotteryResult.prize.description)}</p>` : ''}
-            <button class="btn btn-primary" onclick="closeLotteryModal()" style="margin-top: 20px;">太棒了！</button>
+            ${walletMessage}
+            <button class="btn btn-primary" onclick="closeLotteryModal(); if(window.loadWalletBalance) loadWalletBalance();" style="margin-top: 20px;">太棒了！</button>
         `;
     } else {
         resultContainer.innerHTML = `
