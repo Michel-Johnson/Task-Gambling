@@ -105,8 +105,9 @@ class TaskService {
 
     // 开始任务（设定时间限制）
     async startTask(id, timeLimit) {
+        // 使用datetime('now', 'localtime')获取本地时间，避免时区问题
         const sql = `UPDATE tasks 
-                     SET status = ?, started_at = CURRENT_TIMESTAMP, time_limit = ?
+                     SET status = ?, started_at = datetime('now', 'localtime'), time_limit = ?
                      WHERE id = ?`;
         await dbRun(sql, ['in_progress', timeLimit, id]);
         return await this.getTaskById(id);

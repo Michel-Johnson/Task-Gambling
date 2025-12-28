@@ -42,6 +42,8 @@ function initDatabase() {
             name TEXT NOT NULL,
             description TEXT,
             weight INTEGER NOT NULL DEFAULT 1,
+            is_money BOOLEAN DEFAULT 0,
+            money_amount REAL,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             is_active BOOLEAN DEFAULT 1
         )`);

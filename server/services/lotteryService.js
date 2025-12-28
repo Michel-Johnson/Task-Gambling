@@ -106,7 +106,13 @@ class LotteryService {
 
     // 判断是否是金钱类奖品
     isMoneyPrize(prize) {
-        if (!prize || !prize.name) return false;
+        if (!prize) return false;
+        // 优先使用数据库字段
+        if (prize.is_money !== undefined) {
+            return Boolean(prize.is_money);
+        }
+        // 兼容旧数据：检查名称和描述
+        if (!prize.name) return false;
         
         const moneyKeywords = ['元', '¥', '￥', 'money', '现金', '金额', '钱'];
         const name = prize.name.toLowerCase();
@@ -118,8 +124,13 @@ class LotteryService {
         );
     }
 
-    // 从奖品名称或描述中提取金额
+    // 从奖品中提取金额
     extractMoneyAmount(prize) {
+        // 优先使用数据库字段
+        if (prize.money_amount !== undefined && prize.money_amount !== null) {
+            return parseFloat(prize.money_amount);
+        }
+        // 兼容旧数据：从名称或描述中提取
         const text = `${prize.name} ${prize.description || ''}`;
         // 匹配数字，支持小数点
         const matches = text.match(/(\d+\.?\d*)/g);

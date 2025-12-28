@@ -1,5 +1,20 @@
 // 奖品管理功能
 
+// 初始化编辑表单的金钱选项
+function initEditPrizeForm() {
+    const editIsMoneyCheckbox = document.getElementById('edit-prize-is-money');
+    const editMoneyAmountGroup = document.getElementById('edit-money-amount-group');
+    
+    if (editIsMoneyCheckbox && editMoneyAmountGroup) {
+        editIsMoneyCheckbox.addEventListener('change', (e) => {
+            editMoneyAmountGroup.style.display = e.target.checked ? 'block' : 'none';
+            if (!e.target.checked) {
+                document.getElementById('edit-prize-money-amount').value = '';
+            }
+        });
+    }
+}
+
 // 初始化奖品管理
 function initPrizeManager() {
     // 创建奖品表单
@@ -13,6 +28,21 @@ function initPrizeManager() {
     setInterval(loadPrizes, 10000);
 }
 
+// 初始化奖品表单
+function initPrizeForm() {
+    const isMoneyCheckbox = document.getElementById('prize-is-money');
+    const moneyAmountGroup = document.getElementById('money-amount-group');
+    
+    if (isMoneyCheckbox && moneyAmountGroup) {
+        isMoneyCheckbox.addEventListener('change', (e) => {
+            moneyAmountGroup.style.display = e.target.checked ? 'block' : 'none';
+            if (!e.target.checked) {
+                document.getElementById('prize-money-amount').value = '';
+            }
+        });
+    }
+}
+
 // 创建奖品
 async function handleCreatePrize(e) {
     e.preventDefault();
@@ -20,20 +50,34 @@ async function handleCreatePrize(e) {
     const name = document.getElementById('prize-name').value.trim();
     const description = document.getElementById('prize-description').value.trim();
     const weight = parseInt(document.getElementById('prize-weight').value) || 1;
+    const isMoney = document.getElementById('prize-is-money').checked;
+    const moneyAmount = isMoney ? parseFloat(document.getElementById('prize-money-amount').value) : null;
 
     if (!name) {
         showMessage('奖品名称不能为空', 'error');
         return;
     }
 
+    if (isMoney && (!moneyAmount || moneyAmount <= 0)) {
+        showMessage('请输入有效的金额', 'error');
+        return;
+    }
+
     try {
         await apiRequest('/prizes', {
             method: 'POST',
-            body: { name, description, weight }
+            body: { 
+                name, 
+                description, 
+                weight,
+                is_money: isMoney,
+                money_amount: moneyAmount
+            }
         });
 
         showMessage('奖品创建成功！', 'success');
         e.target.reset();
+        document.getElementById('money-amount-group').style.display = 'none';
         loadPrizes();
     } catch (error) {
         showMessage(error.message || '创建奖品失败', 'error');
@@ -116,6 +160,8 @@ async function handleEditPrize(prize) {
         const name = document.getElementById('edit-prize-name').value.trim();
         const description = document.getElementById('edit-prize-description').value.trim();
         const weight = parseInt(document.getElementById('edit-prize-weight').value);
+        const isMoney = document.getElementById('edit-prize-is-money').checked;
+        const moneyAmount = isMoney ? parseFloat(document.getElementById('edit-prize-money-amount').value) : null;
         
         if (!name) {
             showMessage('奖品名称不能为空', 'error');
@@ -127,12 +173,23 @@ async function handleEditPrize(prize) {
             return;
         }
 
+        if (isMoney && (!moneyAmount || moneyAmount <= 0)) {
+            showMessage('请输入有效的金额', 'error');
+            return;
+        }
+
         const prizeId = document.getElementById('edit-prize-id').value;
         
         try {
             await apiRequest(`/prizes/${prizeId}`, {
                 method: 'PUT',
-                body: { name, description, weight }
+                body: { 
+                    name, 
+                    description, 
+                    weight,
+                    is_money: isMoney,
+                    money_amount: moneyAmount
+                }
             });
             
             modal.classList.remove('active');
@@ -171,5 +228,9 @@ function escapeHtml(text) {
 }
 
 // 初始化
-document.addEventListener('DOMContentLoaded', initPrizeManager);
+document.addEventListener('DOMContentLoaded', () => {
+    initPrizeManager();
+    initPrizeForm();
+    initEditPrizeForm();
+});
 

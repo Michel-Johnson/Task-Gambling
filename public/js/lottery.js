@@ -84,13 +84,6 @@ function startLotteryAnimation(lotteryResult, prizes) {
         // 移除所有高亮
         items.forEach(item => item.classList.remove('highlight'));
 
-        // 高亮当前项
-        if (items[currentIndex]) {
-            items[currentIndex].classList.add('highlight');
-        }
-
-        // 移动到下一项
-        currentIndex = (currentIndex + 1) % items.length;
         iterations++;
 
         // 逐渐减速
@@ -98,18 +91,28 @@ function startLotteryAnimation(lotteryResult, prizes) {
             speed *= acceleration;
         }
 
-        // 检查是否到达目标
+        // 检查是否应该停止
         const distance = Math.abs(currentIndex - targetIndex);
         const shouldStop = iterations >= maxIterations && 
                           (distance === 0 || (distance === 1 && speed >= minSpeed * 0.95));
 
         if (shouldStop) {
-            // 停在目标上
-            items[targetIndex].classList.add('highlight');
+            // 确保停在目标上
+            items.forEach(item => item.classList.remove('highlight'));
+            if (items[targetIndex]) {
+                items[targetIndex].classList.add('highlight');
+            }
             showLotteryResult(lotteryResult);
             return;
         }
 
+        // 高亮当前项
+        if (items[currentIndex]) {
+            items[currentIndex].classList.add('highlight');
+        }
+
+        // 移动到下一项
+        currentIndex = (currentIndex + 1) % items.length;
         setTimeout(highlightNext, speed);
     }
 

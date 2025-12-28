@@ -14,9 +14,52 @@ function initWallet() {
         viewTransactionsBtn.addEventListener('click', loadWalletTransactions);
     }
 
+    // 提现按钮
+    const withdrawBtn = document.getElementById('withdraw-btn');
+    if (withdrawBtn) {
+        withdrawBtn.addEventListener('click', showWithdrawModal);
+    }
+
     // 加载钱包余额
     loadWalletBalance();
     loadWalletTransactions();
+}
+
+// 显示提现模态框
+function showWithdrawModal() {
+    const amount = prompt('请输入提现金额：');
+    if (!amount) return;
+    
+    const withdrawAmount = parseFloat(amount);
+    if (isNaN(withdrawAmount) || withdrawAmount <= 0) {
+        showMessage('请输入有效的金额', 'error');
+        return;
+    }
+
+    if (!confirm(`确定要提现 ¥${withdrawAmount.toFixed(2)} 吗？`)) {
+        return;
+    }
+
+    handleWithdraw(withdrawAmount);
+}
+
+// 处理提现
+async function handleWithdraw(amount) {
+    try {
+        await apiRequest('/wallet/subtract', {
+            method: 'POST',
+            body: {
+                amount: amount,
+                description: '提现'
+            }
+        });
+        
+        showMessage(`成功提现 ¥${amount.toFixed(2)}`, 'success');
+        loadWalletBalance();
+        loadWalletTransactions();
+    } catch (error) {
+        showMessage(error.message || '提现失败', 'error');
+    }
 }
 
 // 加载钱包余额

@@ -30,7 +30,7 @@ router.get('/:id', async (req, res, next) => {
 // 创建奖品
 router.post('/', async (req, res, next) => {
     try {
-        const { name, description, weight } = req.body;
+        const { name, description, weight, is_money, money_amount } = req.body;
         
         if (!name || !name.trim()) {
             return res.status(400).json({ success: false, message: '奖品名称不能为空' });
@@ -41,9 +41,22 @@ router.post('/', async (req, res, next) => {
             return res.status(400).json({ success: false, message: '权重必须大于0' });
         }
 
-        const sql = `INSERT INTO prizes (name, description, weight) 
-                     VALUES (?, ?, ?)`;
-        const result = await dbRun(sql, [name.trim(), description?.trim() || '', weightValue]);
+        const isMoney = Boolean(is_money);
+        const moneyAmount = isMoney ? parseFloat(money_amount) : null;
+        
+        if (isMoney && (!moneyAmount || moneyAmount <= 0)) {
+            return res.status(400).json({ success: false, message: '金钱类奖品必须设置有效金额' });
+        }
+
+        const sql = `INSERT INTO prizes (name, description, weight, is_money, money_amount) 
+                     VALUES (?, ?, ?, ?, ?)`;
+        const result = await dbRun(sql, [
+            name.trim(), 
+            description?.trim() || '', 
+            weightValue,
+            isMoney ? 1 : 0,
+            moneyAmount
+        ]);
         
         const prize = await dbGet('SELECT * FROM prizes WHERE id = ?', [result.id]);
         res.status(201).json({ success: true, data: prize });
@@ -78,6 +91,15 @@ router.put('/:id', async (req, res, next) => {
             }
             updates.weight = weight;
             values.push(weight);
+        }
+        if (req.body.is_money !== undefined) {
+            updates.is_money = Boolean(req.body.is_money) ? 1 : 0;
+            values.push(updates.is_money);
+        }
+        if (req.body.money_amount !== undefined) {
+            const moneyAmount = req.body.is_money ? parseFloat(req.body.money_amount) : null;
+            updates.money_amount = moneyAmount;
+            values.push(moneyAmount);
         }
 
         if (Object.keys(updates).length === 0) {

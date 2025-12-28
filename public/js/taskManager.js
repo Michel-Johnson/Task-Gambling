@@ -422,13 +422,23 @@ function startTaskTimer(task) {
     }
 
     function updateTimer() {
-        // 使用ISO格式解析时间，避免时区问题
+        // 解析数据库返回的时间（本地时间格式：YYYY-MM-DD HH:MM:SS）
         let startedAt;
-        if (task.started_at.includes('T')) {
-            startedAt = new Date(task.started_at);
+        const timeStr = task.started_at;
+        
+        if (!timeStr) {
+            timerEl.textContent = '时间未设置';
+            return;
+        }
+        
+        // SQLite返回的本地时间格式：YYYY-MM-DD HH:MM:SS
+        // 需要转换为ISO格式才能正确解析
+        if (timeStr.includes('T')) {
+            // 已经是ISO格式
+            startedAt = new Date(timeStr);
         } else {
-            // 如果数据库返回的是本地时间字符串，直接解析
-            startedAt = new Date(task.started_at.replace(' ', 'T'));
+            // 本地时间格式，转换为ISO格式
+            startedAt = new Date(timeStr.replace(' ', 'T') + ':00');
         }
         
         const now = new Date();
