@@ -203,9 +203,8 @@ async function handleEditPrize(prize) {
 
 // 删除奖品
 async function handleDeletePrize(prizeId) {
-    if (!confirm('确定要删除这个奖品吗？')) {
-        return;
-    }
+    const confirmed = await showConfirm('确定要删除这个奖品吗？', '删除奖品');
+    if (!confirmed) return;
 
     try {
         await apiRequest(`/prizes/${prizeId}`, {

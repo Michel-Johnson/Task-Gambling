@@ -26,8 +26,9 @@ function initWallet() {
 }
 
 // 显示提现模态框
-function showWithdrawModal() {
-    const amount = prompt('请输入提现金额：');
+async function showWithdrawModal() {
+    // 使用自定义输入对话框
+    const amount = await showInputDialog('请输入提现金额：', '提现');
     if (!amount) return;
     
     const withdrawAmount = parseFloat(amount);
@@ -36,9 +37,8 @@ function showWithdrawModal() {
         return;
     }
 
-    if (!confirm(`确定要提现 ¥${withdrawAmount.toFixed(2)} 吗？`)) {
-        return;
-    }
+    const confirmed = await showConfirm(`确定要提现 ¥${withdrawAmount.toFixed(2)} 吗？`, '提现确认');
+    if (!confirmed) return;
 
     handleWithdraw(withdrawAmount);
 }

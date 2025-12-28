@@ -66,9 +66,71 @@ async function loadTasks() {
     }
 }
 
+// 初始化事件委托（只绑定一次）
+let eventDelegationInitialized = {
+    'pending-tasks': false,
+    'in-progress-tasks': false,
+    'completed-tasks': false
+};
+
+function initEventDelegation(containerId) {
+    if (eventDelegationInitialized[containerId]) return;
+    
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    
+    container.addEventListener('click', (e) => {
+        const target = e.target.closest('button');
+        if (!target || !target.id) return;
+        
+        const taskId = target.id.match(/\d+$/)?.[0];
+        if (!taskId) return;
+        
+        if (target.id.startsWith('edit-task-')) {
+            e.stopPropagation();
+            // 需要从当前任务列表中查找
+            loadTasks().then(() => {
+                const allTasks = document.querySelectorAll('.task-card');
+                allTasks.forEach(card => {
+                    const cardTaskId = card.querySelector('button')?.id.match(/\d+$/)?.[0];
+                    if (cardTaskId === taskId) {
+                        // 从API重新获取任务数据
+                        apiRequest(`/tasks/${taskId}`).then(response => {
+                            if (response.success) {
+                                handleEditTask(response.data);
+                            }
+                        });
+                    }
+                });
+            });
+        } else if (target.id.startsWith('delete-task-')) {
+            e.stopPropagation();
+            handleDeleteTask(taskId);
+        } else if (target.id.startsWith('complete-task-')) {
+            e.stopPropagation();
+            apiRequest(`/tasks/${taskId}`).then(response => {
+                if (response.success) {
+                    handleCompleteTask(response.data);
+                }
+            });
+        } else if (target.id.startsWith('reactivate-task-')) {
+            e.stopPropagation();
+            handleReactivateTask(taskId);
+        } else if (target.id.startsWith('archive-task-')) {
+            e.stopPropagation();
+            handleArchiveTask(taskId);
+        }
+    });
+    
+    eventDelegationInitialized[containerId] = true;
+}
+
 // 渲染任务列表
 function renderTasks(containerId, tasks, status) {
     const container = document.getElementById(containerId);
+    
+    // 初始化事件委托（只绑定一次）
+    initEventDelegation(containerId);
     
     if (tasks.length === 0) {
         container.innerHTML = `
@@ -82,24 +144,10 @@ function renderTasks(containerId, tasks, status) {
 
     container.innerHTML = tasks.map(task => createTaskCard(task, status)).join('');
 
-    // 绑定事件
-    tasks.forEach(task => {
-        if (status === 'pending') {
-            const editBtn = document.getElementById(`edit-task-${task.id}`);
-            const deleteBtn = document.getElementById(`delete-task-${task.id}`);
-            if (editBtn) editBtn.addEventListener('click', () => handleEditTask(task));
-            if (deleteBtn) deleteBtn.addEventListener('click', () => handleDeleteTask(task.id));
-        } else if (status === 'in_progress') {
-            const completeBtn = document.getElementById(`complete-task-${task.id}`);
-            if (completeBtn) completeBtn.addEventListener('click', () => handleCompleteTask(task));
-            startTaskTimer(task);
-        } else if (status === 'completed') {
-            const reactivateBtn = document.getElementById(`reactivate-task-${task.id}`);
-            const archiveBtn = document.getElementById(`archive-task-${task.id}`);
-            if (reactivateBtn) reactivateBtn.addEventListener('click', () => handleReactivateTask(task.id));
-            if (archiveBtn) archiveBtn.addEventListener('click', () => handleArchiveTask(task.id));
-        }
-    });
+    // 启动计时器（只对进行中的任务）
+    if (status === 'in_progress') {
+        tasks.forEach(task => startTaskTimer(task));
+    }
 }
 
 // 创建任务卡片
@@ -285,9 +333,13 @@ function closeDrawModal() {
 
 // 完成任务
 async function handleCompleteTask(task) {
-    if (!confirm('确定要完成任务吗？完成后将获得抽奖机会！')) {
-        return;
-    }
+    // 防止重复点击
+    if (task._processing) return;
+    
+    const confirmed = await showConfirm('确定要完成任务吗？完成后将获得抽奖机会！', '完成任务');
+    if (!confirmed) return;
+    
+    task._processing = true;
 
     try {
         const result = await apiRequest(`/tasks/${task.id}/complete`, {
@@ -307,14 +359,15 @@ async function handleCompleteTask(task) {
         }
     } catch (error) {
         showMessage(error.message || '完成任务失败', 'error');
+    } finally {
+        task._processing = false;
     }
 }
 
 // 重新激活任务
 async function handleReactivateTask(taskId) {
-    if (!confirm('确定要将此任务重新加入待完成任务吗？')) {
-        return;
-    }
+    const confirmed = await showConfirm('确定要将此任务重新加入待完成任务吗？', '重新激活任务');
+    if (!confirmed) return;
 
     try {
         await apiRequest(`/tasks/${taskId}/reactivate`, {
@@ -392,9 +445,8 @@ async function handleEditTask(task) {
 
 // 删除任务
 async function handleDeleteTask(taskId) {
-    if (!confirm('确定要删除这个任务吗？')) {
-        return;
-    }
+    const confirmed = await showConfirm('确定要删除这个任务吗？', '删除任务');
+    if (!confirmed) return;
 
     try {
         await apiRequest(`/tasks/${taskId}`, {
