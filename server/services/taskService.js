@@ -127,10 +127,18 @@ class TaskService {
         // 计算超时小时数
         const completedAt = new Date();
         const startedAt = new Date(task.started_at);
-        const timeLimit = task.time_limit || 0;
+        const timeLimit = task.time_limit || 0; // 时间限制（分钟）
         
+        // 计算经过的分钟数
         const elapsedMinutes = (completedAt - startedAt) / (1000 * 60);
-        const hoursExceeded = Math.max(0, Math.ceil((elapsedMinutes - timeLimit) / 60));
+        
+        // 计算超时的分钟数
+        const exceededMinutes = Math.max(0, elapsedMinutes - timeLimit);
+        
+        // 将超时分钟数转换为小时数（向上取整，不足1小时按1小时计算）
+        // 例如：超时30分钟 = 0.5小时，向上取整为1小时
+        // 例如：超时90分钟 = 1.5小时，向上取整为2小时
+        const hoursExceeded = Math.ceil(exceededMinutes / 60);
 
         // 更新任务状态
         const sql = `UPDATE tasks 

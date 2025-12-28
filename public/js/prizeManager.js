@@ -98,32 +98,50 @@ function createPrizeCard(prize) {
 
 // 编辑奖品
 async function handleEditPrize(prize) {
-    const newName = prompt('输入新名称:', prize.name);
-    if (!newName) return;
-
-    const newDescription = prompt('输入新描述:', prize.description || '');
-    const newWeight = prompt('输入新权重:', prize.weight);
+    const modal = document.getElementById('edit-prize-modal');
+    const form = document.getElementById('edit-prize-form');
     
-    if (!newWeight || isNaN(newWeight) || parseInt(newWeight) < 1) {
-        showMessage('权重必须大于0', 'error');
-        return;
-    }
-
-    try {
-        await apiRequest(`/prizes/${prize.id}`, {
-            method: 'PUT',
-            body: {
-                name: newName,
-                description: newDescription,
-                weight: parseInt(newWeight)
-            }
-        });
+    // 填充表单
+    document.getElementById('edit-prize-id').value = prize.id;
+    document.getElementById('edit-prize-name').value = prize.name;
+    document.getElementById('edit-prize-description').value = prize.description || '';
+    document.getElementById('edit-prize-weight').value = prize.weight;
+    
+    modal.classList.add('active');
+    
+    // 绑定提交事件
+    form.onsubmit = async (e) => {
+        e.preventDefault();
         
-        showMessage('奖品已更新', 'success');
-        loadPrizes();
-    } catch (error) {
-        showMessage(error.message || '更新奖品失败', 'error');
-    }
+        const name = document.getElementById('edit-prize-name').value.trim();
+        const description = document.getElementById('edit-prize-description').value.trim();
+        const weight = parseInt(document.getElementById('edit-prize-weight').value);
+        
+        if (!name) {
+            showMessage('奖品名称不能为空', 'error');
+            return;
+        }
+        
+        if (!weight || weight < 1) {
+            showMessage('权重必须大于0', 'error');
+            return;
+        }
+
+        const prizeId = document.getElementById('edit-prize-id').value;
+        
+        try {
+            await apiRequest(`/prizes/${prizeId}`, {
+                method: 'PUT',
+                body: { name, description, weight }
+            });
+            
+            modal.classList.remove('active');
+            showMessage('奖品已更新', 'success');
+            loadPrizes();
+        } catch (error) {
+            showMessage(error.message || '更新奖品失败', 'error');
+        }
+    };
 }
 
 // 删除奖品

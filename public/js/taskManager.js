@@ -191,6 +191,11 @@ function showDrawAnimation(selectedTask) {
         const minSpeed = 300; // 最终速度
         const acceleration = 1.1; // 加速度
 
+        // 确定目标索引
+        const selectedIndex = tasks.findIndex(t => t.id === selectedTask.id);
+        let iterations = 0;
+        const minIterations = 20; // 至少转20次
+
         function highlightNext() {
             // 移除所有高亮
             items.forEach(item => item.classList.remove('highlight'));
@@ -200,25 +205,30 @@ function showDrawAnimation(selectedTask) {
                 items[currentIndex].classList.add('highlight');
             }
 
-            // 移动到下一项
-            currentIndex = (currentIndex + 1) % items.length;
+            iterations++;
 
             // 逐渐减速
             if (speed < minSpeed) {
                 speed *= acceleration;
             }
 
-            // 检查是否到达目标
-            const selectedIndex = tasks.findIndex(t => t.id === selectedTask.id);
+            // 检查是否应该停止
             const distance = Math.abs(currentIndex - selectedIndex);
-            
-            if (distance === 0 && speed >= minSpeed * 0.9) {
-                // 停在选中的任务上
-                items[selectedIndex].classList.add('highlight');
+            const shouldStop = iterations >= minIterations && 
+                              (distance === 0 || (distance === 1 && speed >= minSpeed * 0.95));
+
+            if (shouldStop) {
+                // 确保停在目标上
+                items.forEach(item => item.classList.remove('highlight'));
+                if (items[selectedIndex]) {
+                    items[selectedIndex].classList.add('highlight');
+                }
                 showDrawResult(selectedTask);
                 return;
             }
 
+            // 移动到下一项
+            currentIndex = (currentIndex + 1) % items.length;
             setTimeout(highlightNext, speed);
         }
 
@@ -313,32 +323,50 @@ async function handleArchiveTask(taskId) {
 
 // 编辑任务
 async function handleEditTask(task) {
-    const newTitle = prompt('输入新标题:', task.title);
-    if (!newTitle) return;
-
-    const newDescription = prompt('输入新描述:', task.description || '');
-    const newWeight = prompt('输入新权重:', task.weight);
+    const modal = document.getElementById('edit-task-modal');
+    const form = document.getElementById('edit-task-form');
     
-    if (!newWeight || isNaN(newWeight) || parseInt(newWeight) < 1) {
-        showMessage('权重必须大于0', 'error');
-        return;
-    }
-
-    try {
-        await apiRequest(`/tasks/${task.id}`, {
-            method: 'PUT',
-            body: {
-                title: newTitle,
-                description: newDescription,
-                weight: parseInt(newWeight)
-            }
-        });
+    // 填充表单
+    document.getElementById('edit-task-id').value = task.id;
+    document.getElementById('edit-task-title').value = task.title;
+    document.getElementById('edit-task-description').value = task.description || '';
+    document.getElementById('edit-task-weight').value = task.weight;
+    
+    modal.classList.add('active');
+    
+    // 绑定提交事件
+    form.onsubmit = async (e) => {
+        e.preventDefault();
         
-        showMessage('任务已更新', 'success');
-        loadTasks();
-    } catch (error) {
-        showMessage(error.message || '更新任务失败', 'error');
-    }
+        const title = document.getElementById('edit-task-title').value.trim();
+        const description = document.getElementById('edit-task-description').value.trim();
+        const weight = parseInt(document.getElementById('edit-task-weight').value);
+        
+        if (!title) {
+            showMessage('任务标题不能为空', 'error');
+            return;
+        }
+        
+        if (!weight || weight < 1) {
+            showMessage('权重必须大于0', 'error');
+            return;
+        }
+
+        const taskId = document.getElementById('edit-task-id').value;
+        
+        try {
+            await apiRequest(`/tasks/${taskId}`, {
+                method: 'PUT',
+                body: { title, description, weight }
+            });
+            
+            modal.classList.remove('active');
+            showMessage('任务已更新', 'success');
+            loadTasks();
+        } catch (error) {
+            showMessage(error.message || '更新任务失败', 'error');
+        }
+    };
 }
 
 // 删除任务
