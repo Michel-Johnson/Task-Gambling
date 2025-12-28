@@ -425,42 +425,56 @@ function startTaskTimer(task) {
         // 解析数据库返回的时间（本地时间格式：YYYY-MM-DD HH:MM:SS）
         let startedAt;
         const timeStr = task.started_at;
+        const timeLimit = parseInt(task.time_limit);
         
-        if (!timeStr) {
+        if (!timeStr || !timeLimit || isNaN(timeLimit)) {
             timerEl.textContent = '时间未设置';
             return;
         }
         
-        // SQLite返回的本地时间格式：YYYY-MM-DD HH:MM:SS
-        // 需要转换为ISO格式才能正确解析
-        if (timeStr.includes('T')) {
-            // 已经是ISO格式
-            startedAt = new Date(timeStr);
-        } else {
-            // 本地时间格式，转换为ISO格式
-            startedAt = new Date(timeStr.replace(' ', 'T') + ':00');
-        }
-        
-        const now = new Date();
-        const elapsed = (now - startedAt) / 1000 / 60; // 分钟
-        const remaining = task.time_limit - elapsed;
+        try {
+            // SQLite返回的本地时间格式：YYYY-MM-DD HH:MM:SS
+            // 需要转换为ISO格式才能正确解析
+            if (timeStr.includes('T')) {
+                // 已经是ISO格式
+                startedAt = new Date(timeStr);
+            } else {
+                // 本地时间格式，转换为ISO格式
+                // 格式：YYYY-MM-DD HH:MM:SS -> YYYY-MM-DDTHH:MM:SS
+                const isoStr = timeStr.replace(' ', 'T');
+                startedAt = new Date(isoStr);
+            }
+            
+            // 检查日期是否有效
+            if (isNaN(startedAt.getTime())) {
+                timerEl.textContent = '时间格式错误';
+                return;
+            }
+            
+            const now = new Date();
+            const elapsed = (now - startedAt) / 1000 / 60; // 分钟
+            const remaining = timeLimit - elapsed;
 
-        if (remaining <= 0) {
-            timerEl.textContent = '已超时';
-            timerEl.className = 'timer-display timer-danger';
-            return;
-        }
+            if (remaining <= 0) {
+                timerEl.textContent = '已超时';
+                timerEl.className = 'timer-display timer-danger';
+                return;
+            }
 
-        const hours = Math.floor(remaining / 60);
-        const minutes = Math.floor(remaining % 60);
-        timerEl.textContent = `剩余: ${hours}小时 ${minutes}分钟`;
+            const hours = Math.floor(remaining / 60);
+            const minutes = Math.floor(remaining % 60);
+            timerEl.textContent = `剩余: ${hours}小时 ${minutes}分钟`;
 
-        if (remaining < 60) {
-            timerEl.className = 'timer-display timer-danger';
-        } else if (remaining < 120) {
-            timerEl.className = 'timer-display timer-warning';
-        } else {
-            timerEl.className = 'timer-display';
+            if (remaining < 60) {
+                timerEl.className = 'timer-display timer-danger';
+            } else if (remaining < 120) {
+                timerEl.className = 'timer-display timer-warning';
+            } else {
+                timerEl.className = 'timer-display';
+            }
+        } catch (error) {
+            console.error('时间计算错误:', error, timeStr);
+            timerEl.textContent = '时间计算错误';
         }
     }
 

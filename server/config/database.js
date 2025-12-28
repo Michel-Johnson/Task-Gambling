@@ -81,7 +81,55 @@ function initDatabase() {
         // 初始化钱包（如果不存在）
         db.run(`INSERT OR IGNORE INTO wallet (id, amount) VALUES (1, 0)`);
 
+        // 数据库迁移：为已存在的表添加新字段
+        migrateDatabase();
+
         console.log('数据库表初始化完成');
+    });
+}
+
+// 数据库迁移函数
+function migrateDatabase() {
+    // 检查并添加prizes表的新字段
+    db.all("PRAGMA table_info(prizes)", (err, rows) => {
+        if (err) {
+            console.error('检查表结构失败:', err);
+            return;
+        }
+        
+        if (!rows || rows.length === 0) {
+            // 表不存在，会在CREATE TABLE中创建
+            return;
+        }
+        
+        // 检查字段是否存在
+        const columns = rows.map(row => row.name);
+        
+        if (!columns.includes('is_money')) {
+            db.run("ALTER TABLE prizes ADD COLUMN is_money BOOLEAN DEFAULT 0", (err) => {
+                if (err) {
+                    // 忽略已存在的错误
+                    if (!err.message.includes('duplicate column')) {
+                        console.error('添加is_money字段失败:', err);
+                    }
+                } else {
+                    console.log('成功添加is_money字段');
+                }
+            });
+        }
+        
+        if (!columns.includes('money_amount')) {
+            db.run("ALTER TABLE prizes ADD COLUMN money_amount REAL", (err) => {
+                if (err) {
+                    // 忽略已存在的错误
+                    if (!err.message.includes('duplicate column')) {
+                        console.error('添加money_amount字段失败:', err);
+                    }
+                } else {
+                    console.log('成功添加money_amount字段');
+                }
+            });
+        }
     });
 }
 
